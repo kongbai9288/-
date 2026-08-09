@@ -1,54 +1,41 @@
-name: Find Lowest Witch Hut (Final)
+name: Auto Find Lowest Y Swamp Hut
 
 on:
   workflow_dispatch:
     inputs:
       seed:
-        description: '种子号码'
+        description: '要搜索的种子'
         required: true
         default: '-1421144132636065691'
-      radius:
-        description: '搜索半径（方块，默认50000，可调）'
+      max_y:
+        description: '最大Y坐标 (0, -10, -20, -30, -40)'
         required: true
-        default: '50000'
+        default: '-40'
 
 jobs:
-  locate:
+  search:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出您的仓库
-        uses: actions/checkout@v4
-
-      - name: 克隆 Cubiomes 源码
-        uses: actions/checkout@v4
+      - name: 安装 Java
+        uses: actions/setup-java@v4
         with:
-          repository: Cubitect/cubiomes
-          path: cubiomes
-          retries: 3
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: 安装编译工具
+      - name: 下载 LowYSwampHut
         run: |
-          sudo apt update
-          sudo apt install -y build-essential cmake
+          wget -O LowYSwampHut.jar https://github.com/M33Galaxy/LowYSwampHut/releases/latest/download/LowYSwampHut.jar
 
-      - name: 编译 Cubiomes 库
+      - name: 创建种子配置文件
         run: |
-          cd cubiomes
-          mkdir -p build && cd build
-          cmake -DBUILD_SHARED_LIBS=ON ..
-          make -j$(nproc)
-
-      - name: 编译搜索程序（修正链接顺序）
-        run: |
-          gcc -I./cubiomes -L./cubiomes/build search.c -lcubiomes -lm -o search
+          echo "${{ github.event.inputs.seed }}" > seed.txt
 
       - name: 运行搜索
         run: |
-          LD_LIBRARY_PATH=./cubiomes/build ./search ${{ github.event.inputs.seed }} ${{ github.event.inputs.radius }} > results.txt
-          cat results.txt
+          java -Xms2048m -Xmx4096m -jar LowYSwampHut.jar --headless --seed ${{ github.event.inputs.seed }} --max-y ${{ github.event.inputs.max_y }} --output result.txt
 
       - name: 上传结果
         uses: actions/upload-artifact@v4
         with:
-          name: witch-huts
-          path: results.txt
+          name: swamp-hut-result
+          path: result.txt
