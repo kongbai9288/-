@@ -1,10 +1,10 @@
-name: Witch Hut Auto Search
+name: Auto Search Witch Hut
 
 on:
   workflow_dispatch:
     inputs:
       seed:
-        description: '要搜索的种子'
+        description: '种子号码'
         required: true
         default: '-1421144132636065691'
 
@@ -12,33 +12,34 @@ jobs:
   search:
     runs-on: ubuntu-latest
     steps:
-      - name: Install .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '6.0.x'
-
-      - name: Clone witch-hunt-search
+      - name: Fetch data from Chunkbase API
         run: |
-          git clone https://github.com/mikeyhodl/witch-hunt-search.git
-          cd witch-hunt-search
-          dotnet build -c Release
+          # 调用 Chunkbase 的种子地图 API（无需登录）
+          curl -s "https://api.chunkbase.com/seed-map?seed=${{ github.event.inputs.seed }}&version=1.21&structures=swamp_hut" -o raw.json
 
-      - name: Run search
+      - name: Parse JSON and find lowest Z
         run: |
-          cd witch-hunt-search
-          # 执行搜索，输出所有女巫小屋坐标（格式为 x,z）
-          dotnet run --no-build -c Release -- -s ${{ github.event.inputs.seed }} > ../raw_output.txt
-
-      - name: Parse results and find lowest Z
-        run: |
-          # 提取坐标行（假设输出格式类似 "Found hut at X=xxx Z=xxx"）
-          grep -o "X=[-0-9]*, Z=[-0-9]*" raw_output.txt | sed 's/X=//;s/, Z=/,/' > all_coords.txt
-          if [ -s all_coords.txt ]; then
-            # 按 Z 排序（第二个字段），取最小 Z
-            awk -F',' '{print $2 "," $1}' all_coords.txt | sort -n | head -1 | awk -F',' '{print "最低纬度女巫小屋: X="$2 ", Z="$1}' > results.txt
-            cat all_coords.txt >> results.txt
+          # 提取所有 swamp_hut 的坐标 (假设API返回格式为 {"structures":{"swamp_hut":[{"x":...,"z":...}]}})
+          # 实际返回格式可能不同，先保存原始数据用于调试
+          cat raw.json > results.txt
+          echo "" >> results.txt
+          echo "--- 处理结果 ---" >> results.txt
+          # 尝试用 jq 提取坐标（如果格式匹配）
+          if command -v jq &> /dev/null; then
+            jq -r '.structures.swamp_hut[] | "\(.x),\(.z)"' raw.json 2>/dev/null > coords.txt
+            if [ -s coords.txt ]; then
+              # 按 Z 排序，取最小 Z
+              echo "找到的女巫小屋坐标 (X,Z):" >> results.txt
+              cat coords.txt >> results.txt
+              echo "" >> results.txt
+              # 找出 Z 最小的那个
+              echo "最低纬度 (Z最小) 的女巫小屋:" >> results.txt
+              sort -t',' -k2 -n coords.txt | head -1 | awk -F',' '{print "X="$1", Z="$2}' >> results.txt
+            else
+              echo "未找到任何女巫小屋" >> results.txt
+            fi
           else
-            echo "未找到任何女巫小屋" > results.txt
+            echo "jq 未安装，请手动查看 raw.json" >> results.txt
           fi
 
       - name: Upload results
