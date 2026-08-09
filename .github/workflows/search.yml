@@ -1,10 +1,10 @@
-name: Auto Find Lowest Witch Hut
+name: Auto Search Witch Hut (C++)
 
 on:
   workflow_dispatch:
     inputs:
       seed:
-        description: '请输入种子号码'
+        description: '种子号码'
         required: true
         default: '-1421144132636065691'
 
@@ -12,55 +12,29 @@ jobs:
   search:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出代码
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 设置 Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: 安装 mc-seedlocator
-        run: npm install mc-seedlocator
-
-      - name: 创建并运行搜索脚本
+      - name: Install dependencies
         run: |
-          cat > search.js << 'EOF'
-          const { getAreaResult } = require('mc-seedlocator');
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libcubiomes-dev
 
-          const seed = process.argv[2];
-          console.error(`正在搜索种子: ${seed}`);
+      - name: Clone and build Finders
+        run: |
+          git clone https://github.com/hube12/Finders.git
+          cd Finders
+          mkdir build && cd build
+          cmake ..
+          make -j$(nproc)
 
-          const params = {
-              tileSize: 16,
-              searchWidth: 8,
-              edition: "Java",
-              javaVersion: 10200, // 对应 1.21
-              dimension: "overworld"
-          };
+      - name: Run search
+        run: |
+          cd Finders/build
+          # 运行 QuadWitchHutFinder，扫描范围 0-1000（可调），用你的种子
+          ./QuadWitchHutFinder -s ${{ github.event.inputs.seed }} -r 0 1000 > ../../results.txt 2>&1
 
-          getAreaResult(seed, [0, 0], ["witchHut"], params)
-              .then(result => {
-                  if (result && result.witchHut && result.witchHut.length > 0) {
-                      // 按 Z 坐标排序（升序），Z 最小即纬度最低
-                      const huts = result.witchHut.sort((a, b) => a.z - b.z);
-                      const lowest = huts[0];
-                      console.log(`找到 ${huts.length} 个女巫小屋`);
-                      huts.forEach(h => console.log(`坐标: X=${h.x}, Z=${h.z}`));
-                      console.log(`\n✅ 最低纬度女巫小屋: X=${lowest.x}, Z=${lowest.z}`);
-                  } else {
-                      console.log('❌ 未找到任何女巫小屋');
-                  }
-              })
-              .catch(err => {
-                  console.error('搜索出错:', err);
-              });
-          EOF
-
-      - name: 执行搜索
-        run: node search.js ${{ github.event.inputs.seed }} > results.txt 2>&1
-
-      - name: 上传结果
+      - name: Upload results
         uses: actions/upload-artifact@v4
         with:
           name: search-results
