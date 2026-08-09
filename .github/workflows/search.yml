@@ -1,51 +1,35 @@
-name: Final Auto Search
+name: Auto Find Witch Hut
 
 on:
   workflow_dispatch:
     inputs:
       seed:
-        description: '种子号码'
+        description: '世界种子（整数）'
         required: true
         default: '-1421144132636065691'
+      radius:
+        description: '搜索半径（方块，默认10000）'
+        required: false
+        default: '10000'
 
 jobs:
   search:
     runs-on: ubuntu-latest
     steps:
-      - name: Download Cubiomes library
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 运行搜索脚本
         run: |
-          wget https://github.com/Cubitect/cubiomes/releases/download/v1.6.0/libcubiomes.so
-          wget https://raw.githubusercontent.com/Cubitect/cubiomes/master/cubiomes.h
+          python find_witch_huts.py ${{ github.event.inputs.seed }} ${{ github.event.inputs.radius }} > results.txt
 
-      - name: Create and compile C program
-        run: |
-          cat > search.c << 'EOF'
-          #include <stdio.h>
-          #include <stdlib.h>
-          #include "cubiomes.h"
-
-          int main(int argc, char *argv[]) {
-              if (argc < 2) {
-                  fprintf(stderr, "Usage: %s <seed>\n", argv[0]);
-                  return 1;
-              }
-              long long seed = atoll(argv[1]);
-
-              // 创建生成器
-              Generator g;
-              initGenerator(&g, MC_1_21, seed);
-
-              // 搜索女巫小屋
-              StructureConfig sc;
-              getStructureConfig(Structure_SwampHut, &sc);
-
-              // 遍历坐标（简化示例）
-              printf("搜索种子 %lld 的女巫小屋...\n", seed);
-              // 实际调用getStructurePositions需要更多参数
-              // 这里只是展示框架
-
-              return 0;
-          }
-          EOF
-
-      # 这里无法编译，因为cubiomes.h需要更多依赖
+      - name: 上传结果
+        uses: actions/upload-artifact@v4
+        with:
+          name: search-results
+          path: results.txt
