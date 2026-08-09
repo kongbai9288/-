@@ -1,5 +1,2 @@
-# 指定你的种子
 Seed -1421144132636065691
-
-# 列出该种子中所有女巫小屋的位置
-Structure Swamp_Hut
+List Swamp_Hut
