@@ -38,7 +38,10 @@ jobs:
           cmake -DBUILD_SHARED_LIBS=ON ..
           make -j$(nproc)
 
-      - name: 编译搜索程序（修复头文件路径）
+      - name: 复制头文件到根目录（解决路径问题）
+        run: cp cubiomes/include/cubiomes.h .
+
+      - name: 编译搜索程序
         run: |
           gcc -I. -L./cubiomes/build -lcubiomes -lm search.c -o search
 
