@@ -20,7 +20,7 @@ jobs:
 
       - name: Run search
         run: |
-          ./cubiomes-viewer-static-linux --nogui --conditions conditions.txt > results.txt 2>&1 || true
+          ./cubiomes-viewer-static-linux --nogui --verbose --conditions conditions.txt > results.txt 2>&1 || true
           touch results.txt
 
       - name: Upload results
