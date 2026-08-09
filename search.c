@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "cubiomes.h"
+#include "generator.h"
+#include "biomes.h"
 
-// LCG 随机数生成（与 Minecraft 一致）
+// LCG 随机数生成
 uint64_t lcg_next(uint64_t *seed) {
     *seed = *seed * 6364136223846793005ULL + 1442695040888963407ULL;
     return *seed;
@@ -18,7 +19,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     uint64_t seed = strtoull(argv[1], NULL, 10);
-    int radius = (argc > 2) ? atoi(argv[2]) : 50000; // 默认5万格，可调
+    int radius = (argc > 2) ? atoi(argv[2]) : 50000;
 
     Generator gen;
     initGenerator(&gen, MC_1_21, seed);
@@ -27,7 +28,6 @@ int main(int argc, char *argv[]) {
     const int separation = 8;
     const int salt = 10387313;
 
-    // 搜索范围（区块坐标）
     int min_cx = -radius / 16;
     int max_cx = radius / 16;
     int min_cz = -radius / 16;
@@ -57,13 +57,11 @@ int main(int argc, char *argv[]) {
             int bx = cx * 16 + 8;
             int bz = cz * 16 + 8;
 
-            // 生物群系验证（6=沼泽，27=红树林沼泽）
             int biome = getBiomeAt(&gen, bx, 0, bz);
-            if (biome != 6 && biome != 27)
+            if (biome != biome_swamp && biome != biome_mangrove_swamp)  // 使用宏定义
                 continue;
 
-            // 获取地表高度（Y坐标）
-            int y = getHeight(&gen, bx, bz, 0); // 0 = WORLD_SURFACE_WG
+            int y = getHeight(&gen, bx, bz, 0);
             if (y < 0) continue;
 
             results[count].x = bx;
@@ -75,7 +73,7 @@ int main(int argc, char *argv[]) {
         if (count >= 10000) break;
     }
 
-    // 按 Z 升序排序（Z 越小纬度越低）
+    // 按 Z 升序排序
     for (int i = 0; i < count - 1; i++) {
         for (int j = i + 1; j < count; j++) {
             if (results[i].z > results[j].z) {
