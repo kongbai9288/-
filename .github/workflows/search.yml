@@ -13,16 +13,14 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libx11-xcb1 libgl1-mesa-glx
+          sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1 libx11-xcb1
 
       - name: Make cubiomes-viewer executable
         run: chmod +x cubiomes-viewer-static-linux
 
       - name: Run cubiomes-viewer search
         run: |
-          # 运行搜索，即使返回错误代码也不中断流程
           ./cubiomes-viewer-static-linux --nogui --conditions conditions.txt --output results.txt || true
-          # 确保 results.txt 存在（即使为空）
           touch results.txt
 
       - name: Upload search results
