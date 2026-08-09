@@ -24,7 +24,7 @@ jobs:
         with:
           repository: Cubitect/cubiomes
           path: cubiomes
-          retries: 3   # 网络超时自动重试 3 次
+          retries: 3
 
       - name: 安装编译工具
         run: |
@@ -38,9 +38,9 @@ jobs:
           cmake -DBUILD_SHARED_LIBS=ON ..
           make -j$(nproc)
 
-      - name: 编译搜索程序
+      - name: 编译搜索程序（修复头文件路径）
         run: |
-          gcc -I./cubiomes/include -L./cubiomes/build -lcubiomes -lm search.c -o search
+          gcc -I. -L./cubiomes/build -lcubiomes -lm search.c -o search
 
       - name: 运行搜索
         run: |
