@@ -1,4 +1,4 @@
-name: Find Real Witch Huts (Auto Clone Cubiomes)
+name: Find Lowest Witch Hut (Full Algorithm)
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
         required: true
         default: '-1421144132636065691'
       radius:
-        description: '搜索半径（方块）'
+        description: '搜索半径（方块，默认50000）'
         required: true
         default: '50000'
 
@@ -16,10 +16,10 @@ jobs:
   locate:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出您的仓库（包含 search.c）
+      - name: 检出您的仓库
         uses: actions/checkout@v4
 
-      - name: 检出 Cubiomes 源码（自动克隆）
+      - name: 克隆 Cubiomes 源码
         uses: actions/checkout@v4
         with:
           repository: Cubitect/cubiomes
@@ -38,8 +38,10 @@ jobs:
           cmake -DBUILD_SHARED_LIBS=ON ..
           make -j$(nproc)
 
-      - name: 复制头文件到根目录（解决路径问题）
-        run: cp cubiomes/include/cubiomes.h .
+      - name: 自动查找并复制头文件到根目录
+        run: |
+          find cubiomes -name "cubiomes.h" -exec cp {} . \;
+          ls -la cubiomes.h   # 确认复制成功
 
       - name: 编译搜索程序
         run: |
