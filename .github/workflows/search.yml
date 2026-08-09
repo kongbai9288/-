@@ -2,15 +2,6 @@ name: Cubiomes Viewer Headless Search
 
 on:
   workflow_dispatch:
-    inputs:
-      seed:
-        description: '种子号码'
-        required: true
-        default: '-1421144132636065691'
-      structure:
-        description: '要搜索的结构 (Swamp_Hut / Monument)'
-        required: true
-        default: 'Swamp_Hut'
 
 jobs:
   search:
@@ -27,34 +18,12 @@ jobs:
       - name: Make executable
         run: chmod +x cubiomes-viewer-static-linux
 
+      - name: Check file type (debug)
+        run: file ./cubiomes-viewer-static-linux
+
       - name: Run search
         run: |
-          # 方法1：尝试用 --list 参数（新版本支持）
-          ./cubiomes-viewer-static-linux --nogui \
-            --seed ${{ github.event.inputs.seed }} \
-            --list ${{ github.event.inputs.structure }} \
-            > results.txt 2>&1 || true
-
-          # 如果 results.txt 是空的，尝试方法2：用 --export 参数
-          if [ ! -s results.txt ]; then
-            echo "尝试 --export 模式..." >> results.txt
-            ./cubiomes-viewer-static-linux --nogui \
-              --seed ${{ github.event.inputs.seed }} \
-              --export ${{ github.event.inputs.structure }} \
-              >> results.txt 2>&1 || true
-          fi
-
-          # 如果还是空的，尝试方法3：用 --conditions 加载文件
-          if [ ! -s results.txt ]; then
-            echo "尝试 --conditions 模式..." >> results.txt
-            echo "Seed ${{ github.event.inputs.seed }}" > conditions.txt
-            echo "List ${{ github.event.inputs.structure }}" >> conditions.txt
-            ./cubiomes-viewer-static-linux --nogui \
-              --conditions conditions.txt \
-              >> results.txt 2>&1 || true
-          fi
-
-          # 确保文件存在
+          ./cubiomes-viewer-static-linux --nogui --seed -1421144132636065691 --list Swamp_Hut > results.txt 2>&1 || true
           touch results.txt
 
       - name: Upload results
