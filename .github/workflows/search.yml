@@ -1,36 +1,29 @@
-name: Cubiomes Viewer Search
+name: Cubiomes Viewer Headless Search
 
 on:
   workflow_dispatch:
-    inputs:
-      seed:
-        description: '种子号码'
-        required: true
-        default: '-1421144132636065691'
 
 jobs:
   search:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出代码
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 安装依赖
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1 libx11-xcb1
 
-      - name: 赋予执行权限
+      - name: Make executable
         run: chmod +x cubiomes-viewer-static-linux
 
-      - name: 搜索女巫小屋
+      - name: Run search
         run: |
-          ./cubiomes-viewer-static-linux --nogui \
-            --seed ${{ github.event.inputs.seed }} \
-            --list Swamp_Hut > results.txt 2>&1 || true
+          ./cubiomes-viewer-static-linux --nogui --conditions conditions.txt > results.txt 2>&1 || true
           touch results.txt
 
-      - name: 上传结果
+      - name: Upload results
         uses: actions/upload-artifact@v4
         with:
           name: search-results
