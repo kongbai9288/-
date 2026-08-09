@@ -1,35 +1,54 @@
-name: Auto Find Witch Hut
+name: Find Real Witch Huts (Auto Clone Cubiomes)
 
 on:
   workflow_dispatch:
     inputs:
       seed:
-        description: '世界种子（整数）'
+        description: '种子号码'
         required: true
         default: '-1421144132636065691'
       radius:
-        description: '搜索半径（方块，默认10000）'
-        required: false
-        default: '10000'
+        description: '搜索半径（方块）'
+        required: true
+        default: '50000'
 
 jobs:
-  search:
+  locate:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出代码
+      - name: 检出您的仓库（包含 search.c）
         uses: actions/checkout@v4
 
-      - name: 安装 Python
-        uses: actions/setup-python@v5
+      - name: 检出 Cubiomes 源码（自动克隆）
+        uses: actions/checkout@v4
         with:
-          python-version: '3.11'
+          repository: Cubitect/cubiomes
+          path: cubiomes
+          retries: 3   # 网络超时自动重试 3 次
 
-      - name: 运行搜索脚本
+      - name: 安装编译工具
         run: |
-          python find_witch_huts.py ${{ github.event.inputs.seed }} ${{ github.event.inputs.radius }} > results.txt
+          sudo apt update
+          sudo apt install -y build-essential cmake
+
+      - name: 编译 Cubiomes 库
+        run: |
+          cd cubiomes
+          mkdir -p build && cd build
+          cmake -DBUILD_SHARED_LIBS=ON ..
+          make -j$(nproc)
+
+      - name: 编译搜索程序
+        run: |
+          gcc -I./cubiomes/include -L./cubiomes/build -lcubiomes -lm search.c -o search
+
+      - name: 运行搜索
+        run: |
+          LD_LIBRARY_PATH=./cubiomes/build ./search ${{ github.event.inputs.seed }} ${{ github.event.inputs.radius }} > results.txt
+          cat results.txt
 
       - name: 上传结果
         uses: actions/upload-artifact@v4
         with:
-          name: search-results
+          name: witch-huts
           path: results.txt
