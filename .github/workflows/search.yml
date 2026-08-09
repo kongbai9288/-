@@ -1,0 +1,23 @@
+name: Cubiomes Viewer Headless Search
+
+on:
+  workflow_dispatch:
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Make cubiomes-viewer executable
+        run: chmod +x cubiomes-viewer-static-linux
+
+      - name: Run cubiomes-viewer search
+        run: ./cubiomes-viewer-static-linux --nogui --conditions conditions.txt --output results.txt
+
+      - name: Upload search results
+        uses: actions/upload-artifact@v4
+        with:
+          name: search-results
+          path: results.txt
