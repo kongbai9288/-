@@ -2,9 +2,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "generator.h"
-#include "biomes.h"
 
-#define MC_1_21 21   // Cubiomes 版本号
+#define MC_1_21 21
 
 uint64_t lcg_next(uint64_t *seed) {
     *seed = *seed * 6364136223846793005ULL + 1442695040888963407ULL;
@@ -23,7 +22,9 @@ int main(int argc, char *argv[]) {
     int radius = (argc > 2) ? atoi(argv[2]) : 50000;
 
     Generator gen;
-    initGenerator(&gen, MC_1_21, seed);
+    // 正确初始化：setupGenerator + applySeed
+    setupGenerator(&gen, MC_1_21, 0);
+    applySeed(&gen, 0, seed);  // 0 = 主世界
 
     const int spacing = 32;
     const int separation = 8;
@@ -58,14 +59,13 @@ int main(int argc, char *argv[]) {
             int bx = cx * 16 + 8;
             int bz = cz * 16 + 8;
 
-            // 获取生物群系（scale=0 表示精确方块）
-            int biome = getBiomeAt(&gen, 0, bx, 0, bz);
-            if (biome != 6 && biome != 27)   // 6=沼泽, 27=红树林沼泽
+            // scale=1 表示方块坐标
+            int biome = getBiomeAt(&gen, 1, bx, 0, bz);
+            if (biome != 6 && biome != 27)
                 continue;
 
-            // 获取地表高度（0=WORLD_SURFACE_WG）
-            int y = getHeightAt(&gen, bx, bz, 0);
-            if (y < 0) continue;
+            // Cubiomes 没有 getHeight，Y 固定为 64（沼泽海平面）
+            int y = 64;
 
             results[count].x = bx;
             results[count].y = y;
@@ -76,7 +76,6 @@ int main(int argc, char *argv[]) {
         if (count >= 10000) break;
     }
 
-    // 按 Z 升序排序（Z 越小纬度越低）
     for (int i = 0; i < count - 1; i++) {
         for (int j = i + 1; j < count; j++) {
             if (results[i].z > results[j].z) {
