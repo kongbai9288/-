@@ -19,7 +19,11 @@ jobs:
         run: chmod +x cubiomes-viewer-static-linux
 
       - name: Run cubiomes-viewer search
-        run: ./cubiomes-viewer-static-linux --nogui --conditions conditions.txt --output results.txt
+        run: |
+          # 运行搜索，即使返回错误代码也不中断流程
+          ./cubiomes-viewer-static-linux --nogui --conditions conditions.txt --output results.txt || true
+          # 确保 results.txt 存在（即使为空）
+          touch results.txt
 
       - name: Upload search results
         uses: actions/upload-artifact@v4
