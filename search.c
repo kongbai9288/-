@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "cubiomes.h"   // 修改了这一行
+#include "cubiomes/include/cubiomes.h"// 修改了这一行
 
 uint64_t lcg_next(uint64_t *seed) {
     *seed = *seed * 6364136223846793005ULL + 1442695040888963407ULL;
