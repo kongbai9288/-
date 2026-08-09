@@ -4,7 +4,8 @@
 #include "generator.h"
 #include "biomes.h"
 
-// LCG 随机数生成
+#define MC_1_21 21   // Cubiomes 版本号
+
 uint64_t lcg_next(uint64_t *seed) {
     *seed = *seed * 6364136223846793005ULL + 1442695040888963407ULL;
     return *seed;
@@ -57,11 +58,13 @@ int main(int argc, char *argv[]) {
             int bx = cx * 16 + 8;
             int bz = cz * 16 + 8;
 
-            int biome = getBiomeAt(&gen, bx, 0, bz);
-            if (biome != biome_swamp && biome != biome_mangrove_swamp)  // 使用宏定义
+            // 获取生物群系（scale=0 表示精确方块）
+            int biome = getBiomeAt(&gen, 0, bx, 0, bz);
+            if (biome != 6 && biome != 27)   // 6=沼泽, 27=红树林沼泽
                 continue;
 
-            int y = getHeight(&gen, bx, bz, 0);
+            // 获取地表高度（0=WORLD_SURFACE_WG）
+            int y = getHeightAt(&gen, bx, bz, 0);
             if (y < 0) continue;
 
             results[count].x = bx;
@@ -73,7 +76,7 @@ int main(int argc, char *argv[]) {
         if (count >= 10000) break;
     }
 
-    // 按 Z 升序排序
+    // 按 Z 升序排序（Z 越小纬度越低）
     for (int i = 0; i < count - 1; i++) {
         for (int j = i + 1; j < count; j++) {
             if (results[i].z > results[j].z) {
