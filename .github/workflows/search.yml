@@ -1,27 +1,45 @@
-name: Auto Search Witch Hut
+name: Witch Hut Auto Search
 
 on:
   workflow_dispatch:
+    inputs:
+      seed:
+        description: '要搜索的种子'
+        required: true
+        default: '-1421144132636065691'
 
 jobs:
   search:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v4
         with:
-          python-version: '3.11'
+          dotnet-version: '6.0.x'
 
-      - name: Install cubiomes
+      - name: Clone witch-hunt-search
         run: |
-          pip install --upgrade pip
-          pip install cubiomes
+          git clone https://github.com/mikeyhodl/witch-hunt-search.git
+          cd witch-hunt-search
+          dotnet build -c Release
 
-      - name: Run search script
-        run: python search.py
+      - name: Run search
+        run: |
+          cd witch-hunt-search
+          # 执行搜索，输出所有女巫小屋坐标（格式为 x,z）
+          dotnet run --no-build -c Release -- -s ${{ github.event.inputs.seed }} > ../raw_output.txt
+
+      - name: Parse results and find lowest Z
+        run: |
+          # 提取坐标行（假设输出格式类似 "Found hut at X=xxx Z=xxx"）
+          grep -o "X=[-0-9]*, Z=[-0-9]*" raw_output.txt | sed 's/X=//;s/, Z=/,/' > all_coords.txt
+          if [ -s all_coords.txt ]; then
+            # 按 Z 排序（第二个字段），取最小 Z
+            awk -F',' '{print $2 "," $1}' all_coords.txt | sort -n | head -1 | awk -F',' '{print "最低纬度女巫小屋: X="$2 ", Z="$1}' > results.txt
+            cat all_coords.txt >> results.txt
+          else
+            echo "未找到任何女巫小屋" > results.txt
+          fi
 
       - name: Upload results
         uses: actions/upload-artifact@v4
