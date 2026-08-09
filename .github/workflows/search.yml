@@ -1,4 +1,4 @@
-name: Cubiomes Viewer Headless Search
+name: Cubiomes Viewer Auto-Download
 
 on:
   workflow_dispatch:
@@ -15,15 +15,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1 libx11-xcb1
 
-      - name: Make executable
-        run: chmod +x cubiomes-viewer-static-linux
+      # 关键：由系统直接下载官方二进制文件，确保正确
+      - name: Download official binary
+        run: |
+          wget -O cubiomes-viewer-static-linux \
+            https://github.com/Cubitect/cubiomes-viewer/releases/download/4.1.2/cubiomes-viewer-static-linux
+          chmod +x cubiomes-viewer-static-linux
 
-      - name: Check file type (debug)
+      - name: Verify file type
         run: file ./cubiomes-viewer-static-linux
 
       - name: Run search
         run: |
-          ./cubiomes-viewer-static-linux --nogui --seed -1421144132636065691 --list Swamp_Hut > results.txt 2>&1 || true
+          ./cubiomes-viewer-static-linux --nogui \
+            --seed -1421144132636065691 \
+            --list Swamp_Hut > results.txt 2>&1 || true
           touch results.txt
 
       - name: Upload results
