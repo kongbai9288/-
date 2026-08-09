@@ -8,7 +8,7 @@ on:
         required: true
         default: '-1421144132636065691'
       radius:
-        description: '搜索半径（方块，默认50000）'
+        description: '搜索半径（方块，默认50000，可调）'
         required: true
         default: '50000'
 
@@ -38,9 +38,9 @@ jobs:
           cmake -DBUILD_SHARED_LIBS=ON ..
           make -j$(nproc)
 
-      - name: 编译搜索程序
+      - name: 编译搜索程序（修正链接顺序）
         run: |
-          gcc -I./cubiomes -L./cubiomes/build -lcubiomes -lm search.c -o search
+          gcc -I./cubiomes -L./cubiomes/build search.c -lcubiomes -lm -o search
 
       - name: 运行搜索
         run: |
