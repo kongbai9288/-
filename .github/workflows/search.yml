@@ -1,4 +1,4 @@
-name: Find Lowest Witch Hut (Auto-Detect Header)
+name: Find Lowest Witch Hut (Full Auto)
 
 on:
   workflow_dispatch:
@@ -26,6 +26,11 @@ jobs:
           path: cubiomes
           retries: 3
 
+      - name: 列出 Cubiomes 目录结构（调试）
+        run: |
+          ls -la cubiomes/
+          find cubiomes -name "*.h" | head -20
+
       - name: 安装编译工具
         run: |
           sudo apt update
@@ -38,11 +43,22 @@ jobs:
           cmake -DBUILD_SHARED_LIBS=ON ..
           make -j$(nproc)
 
-      - name: 自动查找头文件目录并编译
+      - name: 自动查找并编译（方案A：头文件在 include/）
         run: |
-          HEADER_DIR=$(find cubiomes -name cubiomes.h -print -quit | xargs dirname)
-          echo "头文件目录: $HEADER_DIR"
-          gcc -I"$HEADER_DIR" -L./cubiomes/build -lcubiomes -lm search.c -o search
+          if [ -f cubiomes/include/cubiomes.h ]; then
+            echo "找到 include/cubiomes.h"
+            gcc -I./cubiomes/include -L./cubiomes/build -lcubiomes -lm search.c -o search
+          elif [ -f cubiomes/src/cubiomes.h ]; then
+            echo "找到 src/cubiomes.h"
+            gcc -I./cubiomes/src -L./cubiomes/build -lcubiomes -lm search.c -o search
+          elif [ -f cubiomes/cubiomes.h ]; then
+            echo "找到根目录 cubiomes.h"
+            gcc -I./cubiomes -L./cubiomes/build -lcubiomes -lm search.c -o search
+          else
+            echo "未找到头文件，请检查目录结构"
+            find cubiomes -name "*.h" | grep -i cubiomes
+            exit 1
+          fi
 
       - name: 运行搜索
         run: |
