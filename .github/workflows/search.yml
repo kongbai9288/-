@@ -1,4 +1,4 @@
-name: Find Lowest Witch Hut (Full Algorithm)
+name: Find Lowest Witch Hut (Auto-Detect Header)
 
 on:
   workflow_dispatch:
@@ -38,14 +38,11 @@ jobs:
           cmake -DBUILD_SHARED_LIBS=ON ..
           make -j$(nproc)
 
-      - name: 自动查找并复制头文件到根目录
+      - name: 自动查找头文件目录并编译
         run: |
-          find cubiomes -name "cubiomes.h" -exec cp {} . \;
-          ls -la cubiomes.h   # 确认复制成功
-
-      - name: 编译搜索程序
-        run: |
-          gcc -I. -L./cubiomes/build -lcubiomes -lm search.c -o search
+          HEADER_DIR=$(find cubiomes -name cubiomes.h -print -quit | xargs dirname)
+          echo "头文件目录: $HEADER_DIR"
+          gcc -I"$HEADER_DIR" -L./cubiomes/build -lcubiomes -lm search.c -o search
 
       - name: 运行搜索
         run: |
