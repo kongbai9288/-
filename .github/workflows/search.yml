@@ -4,34 +4,31 @@ on:
   workflow_dispatch:
     inputs:
       seed:
-        description: '要搜索的种子 (例如: -1421144132636065691)'
+        description: '种子号码'
         required: true
         default: '-1421144132636065691'
-      version:
-        description: 'Minecraft 版本 (例如: 1.21)'
-        required: true
-        default: '1.21'
 
 jobs:
   search:
     runs-on: ubuntu-latest
     steps:
-      - name: 下载 Cubiomes Viewer
-        run: |
-          wget https://github.com/Cubitect/cubiomes-viewer/releases/download/4.1.2/cubiomes-viewer-4.1.2-x86_64.AppImage
-          chmod +x cubiomes-viewer-4.1.2-x86_64.AppImage
+      - name: 检出代码
+        uses: actions/checkout@v4
 
       - name: 安装依赖
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfuse2
+          sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1 libx11-xcb1
 
-      - name: 执行搜索
+      - name: 赋予执行权限
+        run: chmod +x cubiomes-viewer-static-linux
+
+      - name: 搜索女巫小屋
         run: |
-          ./cubiomes-viewer-4.1.2-x86_64.AppImage --nogui \
+          ./cubiomes-viewer-static-linux --nogui \
             --seed ${{ github.event.inputs.seed }} \
-            --version ${{ github.event.inputs.version }} \
             --list Swamp_Hut > results.txt 2>&1 || true
+          touch results.txt
 
       - name: 上传结果
         uses: actions/upload-artifact@v4
