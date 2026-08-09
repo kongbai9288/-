@@ -1,10 +1,10 @@
-name: Auto Search Witch Hut
+name: Auto Find Lowest Witch Hut
 
 on:
   workflow_dispatch:
     inputs:
       seed:
-        description: '种子号码'
+        description: '请输入种子号码'
         required: true
         default: '-1421144132636065691'
 
@@ -12,37 +12,55 @@ jobs:
   search:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch data from Chunkbase API
-        run: |
-          # 调用 Chunkbase 的种子地图 API（无需登录）
-          curl -s "https://api.chunkbase.com/seed-map?seed=${{ github.event.inputs.seed }}&version=1.21&structures=swamp_hut" -o raw.json
+      - name: 检出代码
+        uses: actions/checkout@v4
 
-      - name: Parse JSON and find lowest Z
-        run: |
-          # 提取所有 swamp_hut 的坐标 (假设API返回格式为 {"structures":{"swamp_hut":[{"x":...,"z":...}]}})
-          # 实际返回格式可能不同，先保存原始数据用于调试
-          cat raw.json > results.txt
-          echo "" >> results.txt
-          echo "--- 处理结果 ---" >> results.txt
-          # 尝试用 jq 提取坐标（如果格式匹配）
-          if command -v jq &> /dev/null; then
-            jq -r '.structures.swamp_hut[] | "\(.x),\(.z)"' raw.json 2>/dev/null > coords.txt
-            if [ -s coords.txt ]; then
-              # 按 Z 排序，取最小 Z
-              echo "找到的女巫小屋坐标 (X,Z):" >> results.txt
-              cat coords.txt >> results.txt
-              echo "" >> results.txt
-              # 找出 Z 最小的那个
-              echo "最低纬度 (Z最小) 的女巫小屋:" >> results.txt
-              sort -t',' -k2 -n coords.txt | head -1 | awk -F',' '{print "X="$1", Z="$2}' >> results.txt
-            else
-              echo "未找到任何女巫小屋" >> results.txt
-            fi
-          else
-            echo "jq 未安装，请手动查看 raw.json" >> results.txt
-          fi
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
 
-      - name: Upload results
+      - name: 安装 mc-seedlocator
+        run: npm install mc-seedlocator
+
+      - name: 创建并运行搜索脚本
+        run: |
+          cat > search.js << 'EOF'
+          const { getAreaResult } = require('mc-seedlocator');
+
+          const seed = process.argv[2];
+          console.error(`正在搜索种子: ${seed}`);
+
+          const params = {
+              tileSize: 16,
+              searchWidth: 8,
+              edition: "Java",
+              javaVersion: 10200, // 对应 1.21
+              dimension: "overworld"
+          };
+
+          getAreaResult(seed, [0, 0], ["witchHut"], params)
+              .then(result => {
+                  if (result && result.witchHut && result.witchHut.length > 0) {
+                      // 按 Z 坐标排序（升序），Z 最小即纬度最低
+                      const huts = result.witchHut.sort((a, b) => a.z - b.z);
+                      const lowest = huts[0];
+                      console.log(`找到 ${huts.length} 个女巫小屋`);
+                      huts.forEach(h => console.log(`坐标: X=${h.x}, Z=${h.z}`));
+                      console.log(`\n✅ 最低纬度女巫小屋: X=${lowest.x}, Z=${lowest.z}`);
+                  } else {
+                      console.log('❌ 未找到任何女巫小屋');
+                  }
+              })
+              .catch(err => {
+                  console.error('搜索出错:', err);
+              });
+          EOF
+
+      - name: 执行搜索
+        run: node search.js ${{ github.event.inputs.seed }} > results.txt 2>&1
+
+      - name: 上传结果
         uses: actions/upload-artifact@v4
         with:
           name: search-results
